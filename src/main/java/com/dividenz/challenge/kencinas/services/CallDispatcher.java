@@ -32,10 +32,9 @@ public class CallDispatcher {
     @SneakyThrows
     public Mono<String> dispatch(final int callId) {
         return Mono.justOrEmpty(service.getNextAvailableEmployee())
-                .switchIfEmpty(
-                        handleWaitingCall(callId)
-                                .doOnSubscribe(s ->
-                                        log.warn("No available employees to answer this call at the moment #{}", callId)))
+                .switchIfEmpty(handleWaitingCall()
+                    .doOnSubscribe(s ->
+                        log.warn("No available employees to answer this call at the moment #{}", callId)))
                 .flatMap(employee -> service.assignCall(callId, employee))
                 .doOnSubscribe(s -> log.debug("A new call has been acquired: #{}", callId))
                 .doOnError(ex -> log.error("Something went wrong in call: #{}", callId, ex))
@@ -45,10 +44,9 @@ public class CallDispatcher {
     /**
      * Waits for the next available employee to answer the call for an infinite time.
      *
-     * @param callId: call identifier
      * @return async task to answer the call by the next available employee
      */
-    private Mono<Employee> handleWaitingCall(final int callId) {
+    private Mono<Employee> handleWaitingCall() {
         var duration = Duration.ofMillis(100);
 
         // An async task that will repeat until an employee is available with an interval of 100ms between each check.
